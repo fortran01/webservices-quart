@@ -5,13 +5,14 @@ from quart_cors import cors
 import stripe
 import os
 import logging
-from typing import Any, Dict, Set
+from typing import Any, Dict, Optional, Set
 
 
 class Notifier:
     """
     A class to manage websocket clients and send notifications.
     """
+
     def __init__(self) -> None:
         """
         Initializes the Notifier with an empty set of clients.
@@ -26,7 +27,7 @@ class Notifier:
         Args:
             ws (Websocket): The websocket object to register.
         """
-        self.clients.add(ws._get_current_object())
+        self.clients.add(ws._get_current_object())  # type: ignore
         try:
             while True:
                 await ws.send("Connected")
@@ -35,7 +36,7 @@ class Notifier:
         except Exception:
             pass
         finally:
-            self.clients.remove(ws._get_current_object())
+            self.clients.remove(ws._get_current_object())  # type: ignore
 
     async def notify_clients(self, message: str) -> None:
         """
@@ -57,7 +58,7 @@ app = cors(app, allow_origin="*")
 logging.basicConfig(level=logging.INFO)
 logger: logging.Logger = logging.getLogger(__name__)
 
-stripe.api_key: str = os.getenv('STRIPE_API_KEY', 'your_stripe_secret_key')
+stripe.api_key = os.getenv('STRIPE_API_KEY', 'your_stripe_secret_key')
 endpoint_secret: str = os.getenv(
     'STRIPE_WEBHOOK_SECRET', 'your_endpoint_secret')
 
@@ -74,7 +75,7 @@ async def home() -> str:
 
 
 @app.route('/api/webhook', methods=['POST'])
-async def webhook() -> tuple:
+async def webhook() -> tuple[str, int]:
     """
     Handles incoming webhook events from Stripe in an async manner.
 
@@ -82,7 +83,7 @@ async def webhook() -> tuple:
         tuple: A response tuple containing the message and HTTP status code.
     """
     payload: str = await request.get_data(as_text=True)
-    sig_header: str = request.headers.get('stripe-signature')
+    sig_header: Optional[str] = request.headers.get('Stripe-Signature')
 
     try:
         event = stripe.Webhook.construct_event(
@@ -91,7 +92,7 @@ async def webhook() -> tuple:
     except ValueError as e:
         logger.error(f'Invalid payload: {e}')
         abort(400)
-    except stripe.error.SignatureVerificationError as e:
+    except stripe.error.SignatureVerificationError as e:  # type: ignore
         logger.error(f'Invalid signature: {e}')
         abort(400)
 
