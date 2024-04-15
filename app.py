@@ -86,9 +86,9 @@ async def webhook() -> tuple[str, int]:
     sig_header: Optional[str] = request.headers.get('Stripe-Signature')
 
     try:
-        event = stripe.Webhook.construct_event(
+        event: stripe.Event = stripe.Webhook.construct_event(
             payload, sig_header, endpoint_secret
-        )
+        )  # type: ignore
     except ValueError as e:
         logger.error(f'Invalid payload: {e}')
         abort(400)
