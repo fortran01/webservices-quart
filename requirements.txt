@@ -3,4 +3,4 @@ dQuart==0.19.5
 # Extension for handling Cross Origin Resource Sharing (CORS), allowing or restricting resources based on origins.
 quart-cors==0.7.0
 # Python library for Stripe's API, used for processing payments and managing billing.
-stripe==10.4.0
+stripe==10.5.0
