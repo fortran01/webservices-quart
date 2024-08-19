@@ -28,5 +28,10 @@ jobs:
       - name: Run the application
         run: |
           python app.py &
-          sleep 3
-          kill $!
+          PID=$!
+          sleep 3  # Allow the application time to start
+          if ! kill -0 $PID; then
+            echo "Application failed to start."
+            exit 1
+          fi
+          kill $PID
