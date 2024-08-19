@@ -5,7 +5,7 @@ from quart_cors import cors
 import stripe
 import os
 import logging
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional, Set, Tuple
 
 # Define INDEX_HTML at the top after imports
 INDEX_HTML = """
@@ -126,7 +126,7 @@ async def home() -> str:
 
 
 @app.route('/api/webhook', methods=['POST'])
-async def webhook() -> tuple[str, int]:
+async def webhook() -> Tuple[str, int]:
     """
     Handles incoming webhook events from Stripe in an async manner.
 
