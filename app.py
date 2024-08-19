@@ -7,6 +7,57 @@ import os
 import logging
 from typing import Any, Dict, Optional, Set
 
+# Define INDEX_HTML at the top after imports
+INDEX_HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-time Invoice Updates</title>
+</head>
+<body>
+    <h1>Real-time Invoice Updates</h1>
+    <div id="messages"></div>
+
+    <script>
+        let socket;
+
+        function connectWebSocket() {
+            socket = new WebSocket('ws://localhost:5000/ws');
+
+            socket.onopen = function(event) {
+                console.log('WebSocket connection established');
+            };
+
+            socket.onmessage = function(event) {
+                const message = event.data;
+                const timestamp = new Date().toLocaleTimeString();
+                displayMessage(`${timestamp}: ${message}`);
+            };
+
+            socket.onclose = function(event) {
+                console.log('WebSocket connection closed');
+                const timestamp = new Date().toLocaleTimeString();
+                displayMessage(`${timestamp}: WebSocket connection closed`);
+                // Attempt to reconnect after 5 seconds
+                setTimeout(connectWebSocket, 5000);
+            };
+        }
+
+        function displayMessage(message) {
+            const messagesDiv = document.getElementById('messages');
+            const messageElement = document.createElement('p');
+            messageElement.textContent = message;
+            // Insert the new message at the top
+            messagesDiv.insertBefore(messageElement, messagesDiv.firstChild);
+        }
+
+        // Initial connection attempt
+        connectWebSocket();
+    </script>
+</body>
+</html>
+"""
+
 
 class Notifier:
     """
@@ -154,53 +205,3 @@ async def notify_clients(message: str) -> None:
 
 if __name__ == '__main__':
     app.run()
-
-INDEX_HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Real-time Invoice Updates</title>
-</head>
-<body>
-    <h1>Real-time Invoice Updates</h1>
-    <div id="messages"></div>
-
-    <script>
-        let socket;
-
-        function connectWebSocket() {
-            socket = new WebSocket('ws://localhost:5000/ws');
-
-            socket.onopen = function(event) {
-                console.log('WebSocket connection established');
-            };
-
-            socket.onmessage = function(event) {
-                const message = event.data;
-                const timestamp = new Date().toLocaleTimeString();
-                displayMessage(`${timestamp}: ${message}`);
-            };
-
-            socket.onclose = function(event) {
-                console.log('WebSocket connection closed');
-                const timestamp = new Date().toLocaleTimeString();
-                displayMessage(`${timestamp}: WebSocket connection closed`);
-                // Attempt to reconnect after 5 seconds
-                setTimeout(connectWebSocket, 5000);
-            };
-        }
-
-        function displayMessage(message) {
-            const messagesDiv = document.getElementById('messages');
-            const messageElement = document.createElement('p');
-            messageElement.textContent = message;
-            // Insert the new message at the top
-            messagesDiv.insertBefore(messageElement, messagesDiv.firstChild);
-        }
-
-        // Initial connection attempt
-        connectWebSocket();
-    </script>
-</body>
-</html>
-"""
