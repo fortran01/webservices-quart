@@ -1,0 +1,60 @@
+name: Dependabot auto-merge
+on:
+  schedule:
+    - cron: "0 1 * * *" # Run every 1am EST
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  dependabot:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Get open Dependabot PRs
+        id: dependabot_prs
+        run: |
+          prs=$(gh pr list --author app/dependabot --json number,url --jq '.[].url')
+          if [ -z "$prs" ]; then
+            echo "No Dependabot PRs found."
+            echo "PR_LIST=" >> $GITHUB_OUTPUT
+          else
+            echo "PR_LIST<<EOF" >> $GITHUB_OUTPUT
+            echo "$prs" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Process Dependabot PRs
+        if: steps.dependabot_prs.outputs.PR_LIST != ''
+        run: |
+          while IFS= read -r PR_URL; do
+            # Get PR number
+            PR_NUMBER=$(gh pr view "$PR_URL" --json number --jq '.number')
+            
+            # Check PR status
+            PR_STATUS=$(gh pr view "$PR_URL" --json statusCheckRollup --jq '.statusCheckRollup[].conclusion' | sort -u)
+            
+            echo "Processing PR #$PR_NUMBER"
+            echo "PR Status: $PR_STATUS"
+            
+            if [ -z "$PR_STATUS" ]; then
+              echo "PR status is empty. Skipping approval and auto-merge."
+            elif [ "$PR_STATUS" = "SUCCESS" ]; then
+              echo "All checks passed. Approving and enabling auto-merge."
+              
+              # Approve PR
+              gh pr review --approve "$PR_URL"
+              
+              # Enable auto-merge
+              gh pr merge --auto --merge "$PR_URL"
+            else
+              echo "Some checks have not passed. Status: $PR_STATUS. Skipping approval and auto-merge."
+            fi
+            echo "---"
+          done <<< "${{ steps.dependabot_prs.outputs.PR_LIST }}"
